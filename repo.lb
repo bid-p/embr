@@ -1,0 +1,36 @@
+import subprocess
+
+def init(repo):
+    repo.name = "embr"
+    repo.description = "General purpose embedded library with a focus on robotics"
+
+    repo.add_option(
+        StringOption(
+            name="project_name",
+            default="embr-project",
+            description="project name"
+        )
+    )
+
+    repo.add_option(
+        BooleanOption(
+            name="rebuild_modm",
+            default=True,
+            description="Whether or not to rebuild modm HALs"
+        )
+    )
+
+def prepare(repo, options):
+    repo.add_modules_recursive("./src", modulefile="*.lb")
+
+def build(env):
+    env.outbasepath = "embr"
+
+    if env[":rebuild_modm"]:
+        print("Building modm...")
+        try:
+            subprocess.run(["lbuild", "build"], check=True, cwd="embr")
+        except subprocess.CalledProcessError as e:
+            print(e)
+            exit(1)
+
