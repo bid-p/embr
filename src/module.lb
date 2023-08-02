@@ -1,0 +1,12 @@
+def init(module):
+    module.name = ":core"
+    module.description = "Core Embr library"
+
+def prepare(module, options):
+    # add dependencies
+    return True
+
+def build(env):
+    env.outbasepath = "embr/src"
+    env.copy("./*.hpp")
+    env.copy("./*.cpp")
