@@ -1,12 +1,3 @@
-import os
-
-def get_embr_sconstruct_file() -> str:
-    '''
-    Returns the path to the embr Sconstruct template file relative to the generated embr directory.
-    '''
-    absolute_sconstruct_template_path = localpath('../build-tools/Sconstruct.in')
-    return absolute_sconstruct_template_path
-
 def init(module):
     module.name = ":build-tools"
     module.description = "Files required to build the project"
@@ -18,10 +9,8 @@ def prepare(module, options):
 def build(env):
     project_name = env[":project_name"]
 
-    print(get_embr_sconstruct_file())
-
     # Replace "project_name" from SConstruct with the actual project name
-    with open(get_embr_sconstruct_file(), "r") as f:
+    with open(localpath('./Sconstruct.in'), "r") as f:
         sconstruct = f.read()
     sconstruct = sconstruct.replace("TO_BE_REPLACED_PROJECT_NAME", project_name)
     with open("Sconstruct", "w") as f:
