@@ -20,6 +20,13 @@ def init(repo):
         )
     )
 
+    repo.add_option(
+        StringOption(
+            name="mcu",
+            description="MCU target to build modm for"
+        )
+    )
+
 def prepare(repo, options):
     repo.add_modules_recursive("./src", modulefile="*.lb")
 
