@@ -1,0 +1,24 @@
+import sys
+import os
+
+def get_modm_repo_lb_file() -> str:
+    '''
+    Returns the path to the modm submodule's repo.lb file relative to the generated embr directory.
+    '''
+    absolute_repo_lb_path = localpath('../modm/repo.lb')
+    generated_embr_path = os.path.abspath('embr')
+    return os.path.relpath(absolute_repo_lb_path, generated_embr_path)
+
+def init(module):
+    return True
+
+def build(env):
+    mcu = env[":mcu"]
+
+    env.substitutions = {
+        "modm_path": get_modm_repo_lb_file(),
+        "mcu": mcu,
+    }
+
+    env.outbasepath = "embr"
+    env.template("project.xml.in", "project.xml")

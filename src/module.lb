@@ -8,5 +8,5 @@ def prepare(module, options):
 
 def build(env):
     env.outbasepath = "embr/src"
-    env.copy("./*.hpp")
-    env.copy("./*.cpp")
+    env.copy("./testsrc.hpp")
+    # env.copy("./*.cpp")
