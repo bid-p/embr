@@ -10,6 +10,8 @@ def get_modm_repo_lb_file() -> str:
     return os.path.relpath(absolute_repo_lb_path, generated_embr_path)
 
 def init(module):
+    module.name = ":modm-project.xml"
+    module.description = "project.xml files used to generate modm HALs"
     return True
 
 def prepare(module, options):
