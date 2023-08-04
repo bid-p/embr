@@ -4,7 +4,7 @@ def get_embr_sconstruct_file() -> str:
     '''
     Returns the path to the embr Sconstruct template file relative to the generated embr directory.
     '''
-    absolute_sconstruct_template_path = localpath('../build_tools/Sconstruct.in')
+    absolute_sconstruct_template_path = localpath('../build-tools/Sconstruct.in')
     return absolute_sconstruct_template_path
 
 def init(module):
