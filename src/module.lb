@@ -3,6 +3,9 @@ def init(module):
     module.description = "Core Embr library"
 
 def prepare(module, options):
+    module.depends(
+        ":modm-project.xml"
+    )
     # add dependencies
     return True
 

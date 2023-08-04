@@ -20,6 +20,8 @@ def prepare(module, options):
 def build(env):
     mcu = env[":mcu"]
 
+    print(f"MCU target selected: {mcu}\n")
+
     env.substitutions = {
         "modm_path": get_modm_repo_lb_file(),
         "mcu": mcu,
