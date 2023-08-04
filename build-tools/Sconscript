@@ -1,0 +1,108 @@
+import sys
+from os.path import abspath
+from multiprocessing import cpu_count
+
+Import("env")
+Import("args")
+
+LINKERSCRIPT_FILE = abspath("modm/link/linkerscript.ld")
+HOSTED_LIBS = ["pthread"]
+HARDWARE_MODM_PATH = "modm"
+
+if args["TARGET_ENV"] == "hardware":
+    modm_path = HARDWARE_MODM_PATH
+
+env.SConscript(dirs = [modm_path], exports=["env"])
+
+env["LINKERSCRIPT_FILE"] = LINKERSCRIPT_FILE
+
+if GetOption("num_jobs") == 1:
+    SetOption("num_jobs", max(cpu_count() - 1, 1))
+
+if sys.platform == "win32":
+    import subprocess
+
+    def win32_spawn_via_popen(_sh, _escape, cmd, args, env):
+        # Blind argument concatenation is generally dangerous but args seem to already come in
+        # escaped+quoted.
+        # "args" is intended to be the target's argv, and thus the first entry is the program name
+        # itself. We strip this and replace it with the explicit target command before passing it to
+        # Popen. Windows will internally compute an appropriate argv.
+        concatenated_args = " ".join(args[1:])
+        command_with_args = cmd + " " + concatenated_args
+
+        # Provided shell and escape function are ignored. It is not clear under what cases scons
+        # uses the features of a host shell so it's unused for simplicity.
+
+        proc = subprocess.Popen(
+            command_with_args,
+            stdin=None,
+            stdout=None,
+            stderr=None,
+            shell=False,
+            env=env
+        )
+        _stdout, _stderr = proc.communicate()
+        status_code = proc.wait()
+        return status_code
+    
+    env["SPAWN"] = win32_spawn_via_popen
+
+# References:
+#   GCC flags: https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html
+#   Scons API: https://www.scons.org/doc/latest/HTML/scons-user/apa.html
+#
+# You can append one or multiple options like this
+#     env.Append(CCFLAGS="-pedantic")
+#     env.Append(CCFLAGS=["-pedantic", "-pedantic-errors"])
+# If you need to remove options, you need to do this:
+#     env["CCFLAGS"].remove("-pedantic")
+# Note that a lot of options also have a "-no-{option}" option
+# that may overwrite previous options.
+
+# Add build-specific flags
+if args["BUILD_PROFILE"] == "debug":
+    env.AppendUnique(CCFLAGS=["-fno-inline"])
+elif args["BUILD_PROFILE"] == "fast":
+    if "-g3" in env["CCFLAGS"]:
+        env["CCFLAGS"].remove("-g3")
+    env.AppendUnique(CCFLAGS=["-O0"])
+elif args["BUILD_PROFILE"] == "release":
+    # Replace -Os with -O3
+    if "-Os" in env["CCFLAGS"]:
+        env["CCFLAGS"].remove("-Os")
+    env.AppendUnique(CCFLAGS=["-O2"])
+
+# Add profiling-specific flags
+if args["PROFILING"] == "true":
+    env.AppendUnique(CPPFLAGS=["-DRUN_WITH_PROFILING"])
+
+
+# For Hardware target
+env["LINKFLAGS"].remove("-Tmodm/link/linkerscript.ld")
+env.AppendUnique(LINKFLAGS=["-T" + LINKERSCRIPT_FILE])
+
+env.AppendUnique(CCFLAGS=["-Wno-misleading-indentation"])
+
+# Add any additional flags the user chooses specify
+if "additional-ccflags" in ARGUMENTS:
+    env.AppendUnique(CCFLAGS=[*ARGUMENTS["additional-ccflags"].split(",")])
+
+# Add src to environment's include path
+env.AppendUnique(CPPPATH=[abspath("src")])
+env.AppendUnique(CPPPATH=[abspath("ext")])
+
+# Build external library, external SConscript should be ran before any of the build code defined below env.SConscript(dirs=["ext"], exports=["env"])
+# env.SConscript(dirs=["ext"], exports=["env"])
+
+# Find all files that need to be built with the library (files in src and ext, files in test if target environment is tests)
+files = env.FindSourceFiles("src")
+
+# Construct the static library
+library = env.StaticLibrary(target="embr", source=files)
+
+# Add library to the environment
+env.AppendUnique(LIBS=[library])
+env.AppendUnique(LIBPATH=[abspath(str(library[0].get_dir()))])
+
+Return("library")

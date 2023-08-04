@@ -6,6 +6,9 @@ def prepare(module, options):
     module.depends(
         ":modm-project.xml"
     )
+    module.depends(
+        ":build-tools"
+    )
     # add dependencies
     return True
 
