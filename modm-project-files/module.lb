@@ -12,6 +12,9 @@ def get_modm_repo_lb_file() -> str:
 def init(module):
     return True
 
+def prepare(module, options):
+    return True
+
 def build(env):
     mcu = env[":mcu"]
 
