@@ -42,6 +42,7 @@ def build(env):
 
     metadata_options = []
     default_modm_modules = []
+    user_specified_modules = []
 
     if env[":build_default_modm_modules"]:
         module_metadata = xml_parser_utils.parse_default_modm_modules()
@@ -51,8 +52,7 @@ def build(env):
 
     if env[":modm_modules"] != "none":
         user_specified_modules = xml_parser_utils.get_comma_separated_values(env[":modm_modules"])
-        print(f"user_specified_modules: {user_specified_modules}")
-        metadata_modules.extend(user_specified_modules)
+        # print(f"user_specified_modules: {user_specified_modules}")
 
     if env[":supported_board"] != "none":
         metadata = xml_parser_utils.parse_board_info(env[":supported_board"])
@@ -67,13 +67,14 @@ def build(env):
 
         metadata_modules.extend(metadata.find("modules"))
         
-        print(f"metadata_modules:")
-        print([module.text for module in metadata_modules])
+        # print(f"metadata_modules:")
+        # print([module.text for module in metadata_modules])
     else:
         assert env[":mcu"] != "none", "MCU must be specified if supported_board not provided"
         metadata_options.append(lbuild_option_tag("modm:target", env[":mcu"]))
 
     metadata_modules_tags = [lbuild_module_tag(module.text) for module in metadata_modules]
+    metadata_modules_tags.extend(map(lbuild_module_tag, user_specified_modules))
 
     env.substitutions = {
         "modm_path": get_modm_repo_lb_file(),
