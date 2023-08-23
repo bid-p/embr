@@ -1,5 +1,11 @@
 import sys
 import os
+import warnings
+import lxml.etree as ET
+
+sys.path.append(repopath("scripts"))
+import xml_parser_utils
+
 
 def get_modm_repo_lb_file() -> str:
     '''
@@ -9,22 +15,70 @@ def get_modm_repo_lb_file() -> str:
     generated_embr_path = os.path.abspath('embr')
     return os.path.relpath(absolute_repo_lb_path, generated_embr_path)
 
+def lbuild_option_tag(name: str, value: str) -> str:
+    '''
+    Returns an lbuild option tag with the given name and value.
+    '''
+    return f'\n\t\t<option name="{name}">{value}</option>'
+
+def lbuild_module_tag(name: str) -> str:
+    '''
+    Returns an lbuild module tag with the given name.
+    '''
+    return f'\n\t\t<module>{name}</module>'
+
 def init(module):
     module.name = ":modm-project.xml"
     module.description = "project.xml files used to generate modm HALs"
     return True
 
 def prepare(module, options):
+    # print(module)
     return True
 
 def build(env):
-    mcu = env[":mcu"]
+    # if target not found within embr targets, try and find within modm targets
+    # if target not found within modm targets, create a templated board.hpp file from board.hpp.in
 
-    print(f"MCU target selected: {mcu}\n")
+    metadata_options = []
+    default_modm_modules = []
+
+    if env[":build_default_modm_modules"]:
+        module_metadata = xml_parser_utils.parse_default_modm_modules()
+        default_modm_modules = module_metadata.find("modules")
+    
+    metadata_modules = default_modm_modules
+
+    if env[":modm_modules"] != "none":
+        user_specified_modules = xml_parser_utils.get_comma_separated_values(env[":modm_modules"])
+        print(f"user_specified_modules: {user_specified_modules}")
+        metadata_modules.extend(user_specified_modules)
+
+    if env[":supported_board"] != "none":
+        metadata = xml_parser_utils.parse_board_info(env[":supported_board"])
+        for option in metadata.find("options"):
+            if option.attrib["name"] == "modm:target":
+                if env[":mcu"] != "none":
+                    warning_message = f"User-specified MCU {env[':mcu']} will override default MCU target {option.text}."
+                    warnings.warn(warning_message)
+                    metadata_options.append(lbuild_option_tag("modm:target", env[":mcu"]))
+                    continue
+            metadata_options.append(lbuild_option_tag(option.attrib["name"], option.text))
+
+        metadata_modules.extend(metadata.find("modules"))
+        
+        print(f"metadata_modules:")
+        print([module.text for module in metadata_modules])
+    else:
+        assert env[":mcu"] != "none", "MCU must be specified if supported_board not provided"
+        metadata_options.append(lbuild_option_tag("modm:target", env[":mcu"]))
+
+    metadata_modules_tags = [lbuild_module_tag(module.text) for module in metadata_modules]
 
     env.substitutions = {
         "modm_path": get_modm_repo_lb_file(),
-        "mcu": mcu,
+        "metadata_options" : metadata_options,
+        "metadata_modules" : metadata_modules_tags,
     }
 
     env.outbasepath = "embr"

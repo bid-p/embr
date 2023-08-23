@@ -1,0 +1,13 @@
+def init(module):
+    module.name = ":board"
+    module.description = "Board support module that contains pin defines"
+
+def prepare(module, options):
+    return True
+
+def build(env):
+    supported_board = env[":supported_board"]
+    if supported_board == None:
+        print("Building Embr board support module from scratch... Requires manual configuration")
+        env.outbasepath = "embr/src/board"
+    return True

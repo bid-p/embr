@@ -1,0 +1,24 @@
+#pragma once
+
+#include "modm/architecture/interface/clock.hpp"
+#include "modm/platform.hpp"
+
+using namespace modm::platform;
+
+namespace Board {
+using namespace modm::literals;
+
+/**
+ * @brief Board-specific clock configuration.
+ * {{ mcu }} running at {{ clock_frequency }}.
+ */
+
+// clang-format off
+struct SystemClock {
+    static constexpr uint32_t Frequency = {{ clock_frequency }};
+    static constexpr uint32_t Ahb = Frequency;
+    static constexpr 
+}
+// clang-format on
+
+}  // namespace Board

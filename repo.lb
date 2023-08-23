@@ -19,18 +19,43 @@ def init(repo):
             description="Whether or not to rebuild modm HALs"
         )
     )
-
+    
     repo.add_option(
         StringOption(
             name="mcu",
-            description="MCU target to build modm for"
+            default="none",
+            description="MCU to build project for"
+        )
+    )
+
+    repo.add_option(
+        StringOption(
+            name="supported_board",
+            default="none",
+            description="Board supported by embr or modm"
+        )
+    )
+
+    repo.add_option(
+        BooleanOption(
+            name="build_default_modm_modules",
+            default=True,
+            description="Whether or not to build embr's default modm modules"
+        )
+    )
+
+    repo.add_option(
+        StringOption(
+            name="modm_modules",
+            default="none",
+            description="modm modules to be compiled for the project"
         )
     )
 
 def prepare(repo, options):
-    repo.add_modules_recursive("./modm-project-files", modulefile="*.lb")
-    repo.add_modules_recursive("./build-tools", modulefile="*.lb")
-    repo.add_modules_recursive("./src", modulefile="*.lb")
+    repo.find_modules_recursive("./modm-project-files", modulefile="*.lb")
+    repo.find_modules_recursive("./build-tools", modulefile="*.lb")
+    repo.find_modules_recursive("./src", modulefile="*.lb")
 
 def build(env):
     env.outbasepath = "embr"

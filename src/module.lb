@@ -3,13 +3,15 @@ def init(module):
     module.description = "Core Embr library"
 
 def prepare(module, options):
-    module.depends(
-        ":modm-project.xml"
-    )
-    module.depends(
-        ":build-tools"
-    )
+    print(options[":supported_board"])
     # add dependencies
+    module_dependencies = [
+        ":modm-project.xml",
+        ":build-tools",
+        ":board",
+    ]
+
+    module.depends(*module_dependencies)
     return True
 
 def build(env):
