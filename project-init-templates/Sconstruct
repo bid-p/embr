@@ -1,0 +1,55 @@
+import os
+import glob
+
+from os.path import join, abspath
+
+from SCons.Script import *
+
+from build_tools import parse_args
+
+PROJECT_NAME = "project_name"
+BUILD_PATH = "build"
+EMBR_PATH = "embr"
+SRC_PATH = "src"
+
+IGNORED_FILES = []
+
+args = parse_args.parse_args()
+
+env = DefaultEnvironment(ENV=os.environ)
+env["CONFIG_BUILD_BASE"] = abspath(join(BUILD_PATH, args["TARGET_ENV"]))
+env["CONFIG_PROJECT_NAME"] = PROJECT_NAME
+env["CONFIG_ARTIFACT_PATH"] = join(env["CONFIG_BUILD_BASE"], "artifact")
+env["CONFIG_PROFILE"] = args["BUILD_PROFILE"]
+
+# Building all libraries (read from sconscript files located in provided dirs)
+# Ensure that modm is first, since Embr depends on modm
+env.SConscript(dirs=[EMBR_PATH], exports=["env", "args"])
+
+print("Configured {0} parallel build jobs (-j{0})".format(GetOption("num_jobs")))
+
+env.AppendUnique(CPPPATH=[SRC_PATH])
+
+sources = env.FindSourceFiles("src")
+
+# building for hardware
+if args["TARGET_ENV"] == "hardware":
+    print(f"\nBuilding for hardware environment with profile \"{args['BUILD_PROFILE']}\"\n")
+
+    program = env.Program(target=env["CONFIG_PROJECT_NAME"] + ".elf", source=sources)
+
+    # The executable depends on the linkerscript
+    env.Depends(target=program, dependency=env["LINKERSCRIPT_FILE"])
+
+    # Add target environment-specific SCons aliases
+    # WARNING: all aliases must be checked during argument validation
+    env.Alias("build", program)
+    env.Alias("size", env.Size(program))
+    env.Alias("gdb", env.DebugGdbRemote(program))
+    env.Alias("run", [env.ProgramOpenOcd(program)])
+    env.Alias("all", ["build", "size"])
+    env.Default("all")  # For the hardware target env, "all" runs if you don't
+                        # specify anything (i.e. just type "scons")
+else:
+    print("Not sure how you made it here, target environment not supported in SConstruct.")
+    exit(1)

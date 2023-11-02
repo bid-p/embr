@@ -1,0 +1,14 @@
+<library>
+    <repositories>
+        <repository><path>../embr/repo.lb</path></repository>
+    </repositories>
+
+    <options>
+        <option name="embr:project_name">project-name</option>
+        <option name="embr:rebuild_modm">True</option>
+    </options>
+
+    <modules>
+        <module>embr:core</module>
+    </modules>
+</library>
