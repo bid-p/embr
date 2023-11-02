@@ -6,6 +6,9 @@
     <options>
         <option name="embr:project_name">project-name</option>
         <option name="embr:rebuild_modm">True</option>
+
+        <!-- <option name="embr:mcu">stm32g431rbt6</option> -->
+        <!-- <option name="embr:supported_board">development-board-c</option> -->
     </options>
 
     <modules>

@@ -7,7 +7,7 @@ from SCons.Script import *
 
 from build_tools import parse_args
 
-PROJECT_NAME = "project_name"
+PROJECT_NAME = "project-name"
 BUILD_PATH = "build"
 EMBR_PATH = "embr"
 SRC_PATH = "src"
