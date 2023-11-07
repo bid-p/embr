@@ -20,7 +20,7 @@ class GitProgressPrinter(RemoteProgress):
 
 def main():
     # Get project name from CLI argument
-    parser = argparse.ArgumentParser("Initialize a new Embr project.")
+    parser = argparse.ArgumentParser("Embr Project Init")
     parser.add_argument("project_name", help="Name of the project to initialize.")
     args = parser.parse_args()
 
