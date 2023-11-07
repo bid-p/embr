@@ -38,7 +38,7 @@ def main():
         embr_dirty = True
 
     # Pull from origin/develop
-    print("Pulling from origin/develop.")
+    print("Updating Embr from origin/develop.")
     origin.pull()
 
     # Update submodules and print progress
@@ -57,7 +57,7 @@ def main():
         else:
             print("Discarding previous changes to embr.")
             # drop latest stash
-            embr_repo.git.stash("drop")
+        embr_repo.git.stash("drop")
 
     # Create a folder named project-name-src if it doesn't already exist
     project_name = args.project_name
