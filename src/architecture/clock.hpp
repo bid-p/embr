@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "modm/platform.hpp"
+#include "modm/architecture/interface/clock.hpp"
 
 namespace embr::arch::time {
 

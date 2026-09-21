@@ -1,0 +1,21 @@
+def init(module):
+    module.name = ":time"
+    module.description = "Clock accessors, timeouts, and periodic timers"
+
+
+def prepare(module, options):
+    module.depends(
+        "modm:architecture:clock",
+        "modm:platform:clock",
+        "modm:build",
+    )
+    return True
+
+
+def build(env):
+    env.outbasepath = "embr/src/emlib/architecture"
+    env.copy("clock.hpp")
+    env.copy("timeout.hpp")
+    env.copy("periodic_timer.hpp")
+
+    env.collect("modm:build:path.include", "embr/src")

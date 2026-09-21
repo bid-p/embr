@@ -1,69 +1,14 @@
-import subprocess
-
 def init(repo):
     repo.name = "embr"
     repo.description = "General purpose embedded library with a focus on robotics"
 
-    repo.add_option(
-        StringOption(
-            name="project_name",
-            default="embr-project",
-            description="project name"
-        )
-    )
-
-    repo.add_option(
-        BooleanOption(
-            name="rebuild_modm",
-            default=True,
-            description="Whether or not to rebuild modm HALs"
-        )
-    )
-    
-    repo.add_option(
-        StringOption(
-            name="mcu",
-            default="none",
-            description="MCU to build project for"
-        )
-    )
-
-    repo.add_option(
-        StringOption(
-            name="supported_board",
-            default="none",
-            description="Board supported by embr or modm"
-        )
-    )
-
-    repo.add_option(
-        BooleanOption(
-            name="build_default_modm_modules",
-            default=True,
-            description="Whether or not to build embr's default modm modules"
-        )
-    )
-
-    repo.add_option(
-        StringOption(
-            name="modm_modules",
-            default="none",
-            description="modm modules to be compiled for the project"
-        )
-    )
 
 def prepare(repo, options):
-    repo.find_modules_recursive("./modm-project-files", modulefile="*.lb")
+    # modm is not loaded from here: projects list modm/repo.lb alongside this repo in their
+    # project.xml, and embr modules depend on the modm modules they need directly.
     repo.find_modules_recursive("./build-tools", modulefile="*.lb")
     repo.find_modules_recursive("./src", modulefile="*.lb")
 
-def build(env):
-    env.outbasepath = "embr"
 
-    if env[":rebuild_modm"]:
-        print("Building modm...")
-        try:
-            subprocess.run(["lbuild", "build"], check=True, cwd="embr")
-        except subprocess.CalledProcessError as e:
-            print(e)
-            exit(1)
+def build(env):
+    pass

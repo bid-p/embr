@@ -1,23 +1,19 @@
 def init(module):
     module.name = ":build-tools"
-    module.description = "Files required to build the project"
-    return True
+    module.description = "SCons files required to build an embr project"
+
 
 def prepare(module, options):
+    module.depends("modm:build", "modm:build:scons")
     return True
 
-def build(env):
-    project_name = env[":project_name"]
 
-    # Replace "project_name" from SConstruct with the actual project name
-    with open(localpath('./Sconstruct.in'), "r") as f:
-        sconstruct = f.read()
-    sconstruct = sconstruct.replace("TO_BE_REPLACED_PROJECT_NAME", project_name)
-    with open("Sconstruct", "w") as f:
-        f.write(sconstruct)
-    
+def build(env):
+    # modm:build:scons generates modm/SConscript and embr/SConscript; this adds the project-level
+    # SConstruct that ties them together with the application sources in src/
+    env.outbasepath = "."
+    env.substitutions = {"project_name": env["modm:build:project.name"]}
+    env.template("Sconstruct.in", "Sconstruct")
+
     env.outbasepath = "build_tools"
     env.copy("parse_args.py")
-
-    env.outbasepath = "embr"
-    env.copy("Sconscript")

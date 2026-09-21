@@ -4,23 +4,12 @@ def init(module):
 
 
 def prepare(module, options):
-    # print(options[":supported_board"])
-    print("Preparing core Embr module...")
-    # add dependencies
-    module_dependencies = [
-        ":modm-project.xml",
+    module.depends(
         ":build-tools",
-        ":board",
-    ]
-
-    module.depends(*module_dependencies)
+        ":time",
+    )
     return True
 
 
 def build(env):
-    env.outbasepath = "embr/src/emlib"
-
-    env.copy("./testsrc.hpp")
-
-    env.copy("./architecture")
-    # env.copy("./*.cpp")
+    pass
