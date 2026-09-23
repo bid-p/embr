@@ -34,6 +34,22 @@ Running `lbuild build` generates:
 
 Then `scons build`, `scons size`, `scons run`, or `scons gdb`.
 
+`scons run` flashes with a SEGGER J-Link through J-Link Commander (`JLink.exe`, found on `PATH`, via
+`JLINK_PATH`, or at SEGGER's default install location). Pass `probe=openocd` to flash through OpenOCD
+and an ST-Link instead.
+
+### J-Link and modm::delay
+
+By default J-Link clears `DEMCR.TRCENA` when a debug session closes, which stops the DWT cycle
+counter that `modm::delay_us` spins on. The application then hangs in its next delay until a power
+cycle (see [modm discussion #1368](https://github.com/modm-io/modm/discussions/1368)).
+`scons run` sends the J-Link command string `SetSkipDebugDeInit = 1` to prevent this. In Ozone, add
+the same command to the project's `OnProjectLoad()`:
+
+```c
+Exec.AddCommandOnOpen("SetSkipDebugDeInit = 1", 0);
+```
+
 ## Requirements
 
 - Python with `lbuild` and `scons`

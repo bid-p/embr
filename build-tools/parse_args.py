@@ -4,11 +4,12 @@ CMD_LINE_ARGS = 1
 HARDWARE_BUILD_TARGET_ACCEPTED_ARGS = ["build", "run", "size", "gdb"]
 VALID_BUILD_PROFILES = ["debug", "release", "fast"]
 VALID_PROFILING_TYPES = ["true", "false"]
+VALID_PROBES = ["jlink", "openocd"]
 
-USAGE = "Usage: scons <target> [profile=<debug|release|fast>] [profiling=<true|false>]\n\
+USAGE = "Usage: scons <target> [profile=<debug|release|fast>] [profiling=<true|false>] [probe=<jlink|openocd>]\n\
     \"<target>\" is one of:\n\
         - \"build\": build all code for the hardware platform.\n\
-        - \"run\": build all code for the hardware platform, and deploy it to the board via a connected ST-Link.\n\
+        - \"run\": build all code for the hardware platform, and deploy it to the board via a connected J-Link (default) or, with probe=openocd, an ST-Link.\n\
         - \"size\": build all code for the hardware platform, and display build size information.\n\
         - \"gdb\": build all code for the hardware platform, opens a gdb session.\n\
         - \"build-tests\": build core code and tests for the current host platform.\n\
@@ -21,7 +22,8 @@ def parse_args():
     args = {
         "TARGET_ENV": "",
         "BUILD_PROFILE": "",
-        "PROFILING": ""
+        "PROFILING": "",
+        "PROBE": ""
     }
 
     if len(COMMAND_LINE_TARGETS) > CMD_LINE_ARGS:
@@ -48,5 +50,9 @@ def parse_args():
     ARGUMENTS["profiling"] = args["PROFILING"]
     if args["PROFILING"] not in VALID_PROFILING_TYPES:
         raise Exception("Invalid profiling type provided. " + USAGE)
-    
+
+    args["PROBE"] = ARGUMENTS.get("probe", "jlink")
+    if args["PROBE"] not in VALID_PROBES:
+        raise Exception("Invalid probe provided. " + USAGE)
+
     return args
