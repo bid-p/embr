@@ -4,7 +4,9 @@ def init(module):
 
 
 def prepare(module, options):
-    module.depends("modm:build", "modm:build:scons")
+    # compilation_db generates modm/tools/builder_compilation_db.py, which Sconstruct runs to write
+    # compile_commands.json for clangd
+    module.depends("modm:build", "modm:build:scons", "modm:build:compilation_db")
     return True
 
 
@@ -14,6 +16,8 @@ def build(env):
     env.outbasepath = "."
     env.substitutions = {"project_name": env["modm:build:project.name"]}
     env.template("Sconstruct.in", "Sconstruct")
+    env.copy("clangd.in", ".clangd")
 
     env.outbasepath = "build_tools"
     env.copy("parse_args.py")
+    env.copy("compile_db.py")

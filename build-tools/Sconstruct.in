@@ -7,7 +7,7 @@ from os.path import join, abspath
 
 from SCons.Script import *
 
-from build_tools import parse_args
+from build_tools import compile_db, parse_args
 
 PROJECT_NAME = "{{ project_name }}"
 BUILD_PATH = "build"
@@ -150,7 +150,14 @@ if args["TARGET_ENV"] == "hardware":
 
     # Add target environment-specific SCons aliases
     # WARNING: all aliases must be checked during argument validation
-    env.Alias("build", program)
+    # compile_commands.json for clangd, regenerated on every build so it follows new sources
+    def write_compile_db(target, source, env):
+        count = compile_db.generate(args["BUILD_PROFILE"], [SRC_PATH])
+        print(f"Compile DB······ compile_commands.json ({count} sources)")
+
+    compile_db_action = env.Action(write_compile_db, cmdstr=None)
+    compile_db_alias = env.AlwaysBuild(env.Alias("compile_db", [], compile_db_action))
+    env.Alias("build", [program, compile_db_alias])
     env.Alias("size", env.Size(program))
     env.Alias("gdb", env.DebugGdbRemote(program))
     if args["PROBE"] == "jlink":
