@@ -1,6 +1,6 @@
 def init(module):
     module.name = ":time"
-    module.description = "Clock accessors, timeouts, and periodic timers"
+    module.description = "Clock and cycle counter accessors, timeouts, and periodic timers"
 
 
 def prepare(module, options):

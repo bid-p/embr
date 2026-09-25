@@ -1,0 +1,17 @@
+def init(module):
+    module.name = ":scheduling"
+    module.description = "Periodic modules and a scheduler that runs them at fixed rates"
+
+
+def prepare(module, options):
+    # getCycles() times each pass
+    module.depends(":time")
+    return True
+
+
+def build(env):
+    env.outbasepath = "embr/src/emlib/scheduling"
+    env.copy("periodic_module.hpp")
+    env.copy("scheduler.hpp")
+
+    env.collect("modm:build:path.include", "embr/src")

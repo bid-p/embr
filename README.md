@@ -67,9 +67,80 @@ Exec.AddCommandOnOpen("SetSkipDebugDeInit = 1", 0);
 | ------------------- | ------------------------------------------------------------------ |
 | `embr:core`         | Umbrella module that pulls in everything below                     |
 | `embr:build-tools`  | Project `Sconstruct` and argument parsing                          |
-| `embr:time`         | Millisecond/microsecond clock accessors, `Timeout`, `PeriodicTimer` |
+| `embr:scheduling`   | `Rate`, `PeriodicModule`, `Module<Derived>`, `Scheduler` (see below) |
+| `embr:time`         | Clock and cycle counter accessors, `Timeout`, `PeriodicTimer`       |
 
-## Adding a module
+## Scheduling
+
+Application code is split into modules that run at a fixed set of rates: 1 Hz, 10 Hz, 100 Hz,
+1 kHz and 5 kHz (`embr::Rate`). A module is one class that derives from `embr::Module<Derived>` and
+overrides only the update functions it needs:
+
+```cpp
+#include "emlib/scheduling/periodic_module.hpp"
+
+class AuxModule final : public embr::Module<AuxModule> {
+public:
+    void initialize() override;  // optional, called once before any update
+    void update1kHz() override;
+    void update10Hz() override;
+};
+```
+
+`Module<Derived>` works out at compile time which update functions `Derived` overrides and reports
+them from `rates()`. Overrides must be public, and should be marked `override`, so that a misspelled
+name (`update1khz`) is a compile error rather than a function that never runs.
+
+`embr::Scheduler` takes the modules once, in the order they should run within a rate:
+
+```cpp
+#include "emlib/scheduling/scheduler.hpp"
+
+embr::Scheduler scheduler{aux::module(), sbus::module()};
+
+scheduler.initialize();                 // each module's initialize(), then one list per rate
+scheduler.run<embr::Rate::k1kHz>();     // one pass: update1kHz() on each module that overrides it
+```
+
+- `run<Rate>()` makes exactly one virtual call per module per pass, and never calls a module at a
+  rate it does not override.
+- Order is defined within a rate (registration order), not across rates.
+- `getStats(rate)` has each rate's pass count, the CPU cycles of the latest and the longest pass,
+  an overrun count (passes longer than the rate's period), and the longest interval between the
+  starts of two passes, which shows passes that started late. The scheduler is a plain object, so
+  these can be read over the debugger. `takeWindowStats(rate)` returns the same numbers for the time
+  since its previous call and starts a new window, for a logger that records them periodically.
+- What drives each rate is up to the application: a fiber with a `modm::ShortPeriodicTimer`, a timer
+  interrupt, etc. A rate run from an interrupt must never block in `update()`, and state it shares
+  with other rates needs atomics.
+
+### Module pattern
+
+- **Managers that exist once per board** (power, logging, radio input...): a namespace with free
+  functions as the public API. The module class and all state are hidden in the `.cpp` (anonymous
+  namespace), and `embr::PeriodicModule& module()` hands the module to the scheduler. The accessor
+  function avoids static initialisation order problems between files.
+- **Reusable components** (drivers, filters, the `Scheduler` itself): classes in headers, templated
+  where needed.
+- **No cross-module setters:** each module computes and stores its own data, and other modules read
+  it through getters. This is a convention; nothing checks it.
+
+### Source layers
+
+Application sources are split into layers by folder, included relative to `src/`
+(e.g. `#include "L0_config/board.hpp"`):
+
+```
+src/
+  L0_config/    board.hpp and board-wide constants
+  L1_drivers/   project-specific drivers
+  L2_app/       main.cpp, rate drivers, managers
+```
+
+A file in `Ln_*` may include files from any `Lm_*` with m ≤ n; modm and embr can be included from
+any layer. This is also a convention without a checker.
+
+## Adding an lbuild module
 
 Create a `module.lb` under `src/`, depend on the modm modules it uses, copy its files under
 `embr/src/emlib/`, and register the include path:
