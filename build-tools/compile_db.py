@@ -6,8 +6,9 @@ and application source with its GCC flags. Each entry is then adapted so clang p
 arm-none-eabi-gcc compiles it:
 
 - --target=arm-none-eabi, so clang parses for the right architecture.
-- GCC's own system include directories (newlib, libstdc++), queried from the cross compiler with each
-  file's target flags, so clangd needs no --query-driver argument and works in any editor.
+- GCC's system include directories (newlib, libstdc++), queried from the cross compiler with each
+  file's target flags, so clangd needs no --query-driver argument and works in any editor. GCC's
+  compiler-internal headers (arm_acle.h, stddef.h...) are left out: clang uses its own.
 - GCC's integer type definitions. For arm-none-eabi GCC makes int32_t a long, clang an int, which
   breaks overloads such as modm::IOStream::operator<<(int32_t) next to operator<<(int).
 - GCC-only flags that clang rejects are dropped.
@@ -55,11 +56,22 @@ def _query_gcc(compiler, language, target_flags, extra_flags, cache={}):
     return cache[key]
 
 
+def _gcc_internal_include_dir(compiler, cache={}):
+    if compiler not in cache:
+        output = subprocess.run([compiler, "-print-file-name=include"], capture_output=True, text=True)
+        cache[compiler] = os.path.dirname(os.path.normpath(output.stdout.strip()))
+    return cache[compiler]
+
+
 def _gcc_system_includes(compiler, language, target_flags):
     lines = _query_gcc(compiler, language, target_flags, ["-v"]).stderr.splitlines()
     start = lines.index("#include <...> search starts here:") + 1
     end = lines.index("End of search list.")
-    return [os.path.normpath(line.strip()) for line in lines[start:end]]
+    # GCC's own headers (lib/gcc/<target>/<version>/include and include-fixed: arm_acle.h, stddef.h...)
+    # use GCC builtins; clang must use its own versions of them instead
+    internal = _gcc_internal_include_dir(compiler) + os.sep
+    return [d for d in (os.path.normpath(line.strip()) for line in lines[start:end])
+            if not d.startswith(internal)]
 
 
 def _gcc_type_macros(compiler, language, target_flags):

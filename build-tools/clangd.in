@@ -4,9 +4,18 @@
 # modm evaluates floor()/round() in constant expressions, which GCC allows as an extension but clang
 # cannot, e.g. computeDelayMhz() in modm/platform/clock/rcc.cpp. Hidden only in generated modm code, so
 # the same diagnostics still show up in application code.
+# modm/ext/gcc/atomic.cpp likewise implements libatomic functions that clang treats as builtins.
 If:
   PathMatch: modm/.*
 Diagnostics:
   Suppress:
     - require_constant_init_failed
     - constexpr_var_requires_const_init
+    - builtin_redeclare
+---
+# modm/ext/gcc/modm_atomic.hpp implements libatomic's __atomic_is_lock_free for GCC, which clang treats
+# as a builtin it may not redefine. The error is reported in every file that includes it, not only in
+# modm/, so it is hidden everywhere; application code never defines compiler builtins.
+Diagnostics:
+  Suppress:
+    - builtin_definition
