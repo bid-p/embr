@@ -31,12 +31,12 @@ enum class Rate : uint8_t { k1Hz, k10Hz, k100Hz, k1kHz, k5kHz };
  *
  * ```cpp
  * const embr::PeriodicModule& module() {
- *     static constexpr embr::PeriodicModule AUX_MANAGER_MODULE = {
+ *     static constexpr embr::PeriodicModule periodicModule = {
  *         .initialize = initialize,
  *         .update10Hz = update10Hz,
  *         .update1kHz = update1kHz,
  *     };
- *     return AUX_MANAGER_MODULE;
+ *     return periodicModule;
  * }
  * ```
  */
@@ -55,8 +55,12 @@ struct PeriodicModule {
  *            P U B L I C   F U N C T I O N   D E F I N I T I O N S
  ******************************************************************************/
 
-inline constexpr size_t index(Rate rate) { return static_cast<size_t>(rate); }
+inline constexpr size_t index(Rate rate) {
+    return static_cast<size_t>(rate);
+}
 
-inline constexpr uint32_t frequencyHz(Rate rate) { return RATE_FREQUENCY_HZ[index(rate)]; }
+inline constexpr uint32_t frequencyHz(Rate rate) {
+    return RATE_FREQUENCY_HZ[index(rate)];
+}
 
 }  // namespace embr

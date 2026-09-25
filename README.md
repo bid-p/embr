@@ -85,12 +85,12 @@ static void update10Hz();
 static void update1kHz();
 
 const embr::PeriodicModule& module() {
-    static constexpr embr::PeriodicModule AUX_MANAGER_MODULE = {
+    static constexpr embr::PeriodicModule periodicModule = {
         .initialize = initialize,
         .update10Hz = update10Hz,
         .update1kHz = update1kHz,
     };
-    return AUX_MANAGER_MODULE;
+    return periodicModule;
 }
 ```
 

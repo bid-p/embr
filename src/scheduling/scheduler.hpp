@@ -66,7 +66,9 @@ public:
      */
     void initialize() {
         for (const PeriodicModule* module : modules) {
-            if (module->initialize != nullptr) module->initialize();
+            if (module->initialize != nullptr) {
+                module->initialize();
+            }
             add(Rate::k1Hz, module->update1Hz);
             add(Rate::k10Hz, module->update10Hz);
             add(Rate::k100Hz, module->update100Hz);
@@ -79,7 +81,9 @@ public:
     void run(Rate rate) {
         RateState& state = rates[index(rate)];
         const uint32_t start = getCycles();
-        for (size_t i = 0; i < state.count; i++) state.updates[i]();
+        for (size_t i = 0; i < state.count; i++) {
+            state.updates[i]();
+        }
         const uint32_t cycles = getCycles() - start;
 
         const uint32_t period = SystemCoreClock / frequencyHz(rate);
@@ -104,7 +108,9 @@ public:
     }
 
     /// Number of modules that run at the rate
-    size_t moduleCount(Rate rate) const { return rates[index(rate)].count; }
+    size_t moduleCount(Rate rate) const {
+        return rates[index(rate)].count;
+    }
 
 private:
     using Update = void (*)();
@@ -118,7 +124,9 @@ private:
     };
 
     void add(Rate rate, Update update) {
-        if (update == nullptr) return;
+        if (update == nullptr) {
+            return;
+        }
         RateState& state = rates[index(rate)];
         state.updates[state.count++] = update;
     }
@@ -126,9 +134,15 @@ private:
     static void record(RateStats& stats, uint32_t cycles, uint32_t late, uint32_t period) {
         stats.passes++;
         stats.lastCycles = cycles;
-        if (cycles > stats.worstCycles) stats.worstCycles = cycles;
-        if (cycles > period) stats.overruns++;
-        if (late > stats.worstLateCycles) stats.worstLateCycles = late;
+        if (cycles > stats.worstCycles) {
+            stats.worstCycles = cycles;
+        }
+        if (cycles > period) {
+            stats.overruns++;
+        }
+        if (late > stats.worstLateCycles) {
+            stats.worstLateCycles = late;
+        }
     }
 
     std::array<const PeriodicModule*, N> modules;
