@@ -7,7 +7,7 @@
 
 #include "timeout.hpp"
 
-namespace embr::arch::time {
+namespace embr {
 
 /**
  * A timer class which unlike the `Timeout` class, will restart when execute
@@ -78,4 +78,4 @@ private:
 using PeriodicMicroTimeout = PeriodicTimer<MicroTimeout>;
 using PeriodicMilliTimeout = PeriodicTimer<MilliTimeout>;
 
-}  // namespace embr::arch::time
+}  // namespace embr

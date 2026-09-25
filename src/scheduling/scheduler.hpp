@@ -1,10 +1,13 @@
 #pragma once
 
+/*******************************************************************************
+ *                               I N C L U D E S
+ ******************************************************************************/
+
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
-
-#include <concepts>
 
 #include "emlib/architecture/clock.hpp"
 
@@ -12,7 +15,11 @@
 
 namespace embr {
 
-/// Timing of one rate's passes, readable over the debugger
+/*******************************************************************************
+ *                                  T Y P E S
+ ******************************************************************************/
+
+/// Timing of one rate's passes
 struct RateStats {
     /// Completed passes
     uint32_t passes = 0;
@@ -22,9 +29,9 @@ struct RateStats {
     uint32_t worstCycles = 0;
     /// Passes that took longer than the rate's period
     uint32_t overruns = 0;
-    /// Most CPU cycles between the starts of two consecutive passes: above the period when a pass started late,
-    /// e.g. because another fiber did not yield in time
-    uint32_t worstIntervalCycles = 0;
+    /// Most CPU cycles a pass started late, i.e. after the previous pass's start plus the period, e.g. because
+    /// another fiber did not yield in time
+    uint32_t worstLateCycles = 0;
 };
 
 /**
@@ -35,7 +42,7 @@ struct RateStats {
  *
  * scheduler.initialize();
  * // then, from whatever drives the 1 kHz rate (a fiber, a timer interrupt...):
- * scheduler.run<embr::Rate::k1kHz>();
+ * scheduler.run(embr::Rate::k1kHz);
  * ```
  *
  * Within a rate, modules run in registration order. There is no order across rates.
@@ -46,108 +53,89 @@ struct RateStats {
 template <size_t N>
 class Scheduler {
 public:
-    template <std::derived_from<PeriodicModule>... Modules>
+    template <std::same_as<PeriodicModule>... Modules>
         requires(sizeof...(Modules) == N)
-    explicit Scheduler(Modules&... registered) : modules{&registered...} {}
+    explicit Scheduler(const Modules&... registered) : modules{&registered...} {}
 
     Scheduler(const Scheduler&) = delete;
     Scheduler& operator=(const Scheduler&) = delete;
 
     /**
-     * Calls each module's initialize(), then builds each rate's list from the modules' rates(). Call it once, after the
-     * system clock is configured and before the first run().
+     * Calls each module's initialize() and lists each rate's update functions. Call it once, after the system clock
+     * is configured and before the first run().
      */
     void initialize() {
-        for (PeriodicModule* module : modules) {
-            module->initialize();
-        }
-        for (PeriodicModule* module : modules) {
-            const Rates rates = module->rates();
-            for (size_t rate = 0; rate < kRateCount; rate++) {
-                if (rates.contains(static_cast<Rate>(rate))) {
-                    lists[rate].modules[lists[rate].count++] = module;
-                }
-            }
-        }
-        for (size_t rate = 0; rate < kRateCount; rate++) {
-            periodCycles[rate] = SystemCoreClock / kRateFrequencyHz[rate];
+        for (const PeriodicModule* module : modules) {
+            if (module->initialize != nullptr) module->initialize();
+            add(Rate::k1Hz, module->update1Hz);
+            add(Rate::k10Hz, module->update10Hz);
+            add(Rate::k100Hz, module->update100Hz);
+            add(Rate::k1kHz, module->update1kHz);
+            add(Rate::k5kHz, module->update5kHz);
         }
     }
 
-    /// Runs one pass of rate R: calls updateR() on each module that overrides it, and records the pass's timing
-    template <Rate R>
-    void run() {
-        const uint32_t start = arch::time::getCycles();
-        const RateList& list = lists[index(R)];
-        for (size_t i = 0; i < list.count; i++) {
-            update<R>(*list.modules[i]);
-        }
-        const uint32_t cycles = arch::time::getCycles() - start;
+    /// Runs one pass of the rate, calling its update functions in registration order, and records its timing
+    void run(Rate rate) {
+        RateState& state = rates[index(rate)];
+        const uint32_t start = getCycles();
+        for (size_t i = 0; i < state.count; i++) state.updates[i]();
+        const uint32_t cycles = getCycles() - start;
 
-        // The interval to the previous pass start, 0 on the first pass
-        const uint32_t interval = stats[index(R)].passes > 0 ? start - lastStart[index(R)] : 0;
-        lastStart[index(R)] = start;
-        record(stats[index(R)], cycles, interval, periodCycles[index(R)]);
-        record(windowStats[index(R)], cycles, interval, periodCycles[index(R)]);
+        const uint32_t period = SystemCoreClock / frequencyHz(rate);
+        // The first pass has no previous start to be late against
+        const uint32_t interval = state.stats.passes > 0 ? start - state.lastStart : 0;
+        const uint32_t late = interval > period ? interval - period : 0;
+        state.lastStart = start;
+        record(state.stats, cycles, late, period);
+        record(state.windowStats, cycles, late, period);
     }
-
-    /// The rate's timing since boot
-    const RateStats& getStats(Rate rate) const { return stats[index(rate)]; }
 
     /**
      * Returns the rate's timing since the previous call (or boot), and starts a new window. For one reader that
-     * takes it periodically, e.g. a logger; getStats() is unaffected.
+     * takes it periodically, e.g. a logger. The timing since boot is in rates[].stats, for the debugger.
      *
      * @warning Not safe against a rate run from an interrupt, which would need the copy and reset to be atomic.
      */
     RateStats takeWindowStats(Rate rate) {
-        const RateStats window = windowStats[index(rate)];
-        windowStats[index(rate)] = {};
+        const RateStats window = rates[index(rate)].windowStats;
+        rates[index(rate)].windowStats = {};
         return window;
     }
 
     /// Number of modules that run at the rate
-    size_t moduleCount(Rate rate) const { return lists[index(rate)].count; }
+    size_t moduleCount(Rate rate) const { return rates[index(rate)].count; }
 
 private:
-    struct RateList {
-        std::array<PeriodicModule*, N> modules{};
+    using Update = void (*)();
+
+    struct RateState {
+        std::array<Update, N> updates{};
         size_t count = 0;
+        uint32_t lastStart = 0;
+        RateStats stats{};
+        RateStats windowStats{};
     };
 
-    // Selected at compile time: exactly one virtual call per module per pass
-    static void record(RateStats& rateStats, uint32_t cycles, uint32_t interval, uint32_t period) {
-        rateStats.passes++;
-        rateStats.lastCycles = cycles;
-        if (cycles > rateStats.worstCycles) rateStats.worstCycles = cycles;
-        if (cycles > period) rateStats.overruns++;
-        if (interval > rateStats.worstIntervalCycles) rateStats.worstIntervalCycles = interval;
+    void add(Rate rate, Update update) {
+        if (update == nullptr) return;
+        RateState& state = rates[index(rate)];
+        state.updates[state.count++] = update;
     }
 
-    template <Rate R>
-    static void update(PeriodicModule& module) {
-        if constexpr (R == Rate::k1Hz) {
-            module.update1Hz();
-        } else if constexpr (R == Rate::k10Hz) {
-            module.update10Hz();
-        } else if constexpr (R == Rate::k100Hz) {
-            module.update100Hz();
-        } else if constexpr (R == Rate::k1kHz) {
-            module.update1kHz();
-        } else if constexpr (R == Rate::k5kHz) {
-            module.update5kHz();
-        }
+    static void record(RateStats& stats, uint32_t cycles, uint32_t late, uint32_t period) {
+        stats.passes++;
+        stats.lastCycles = cycles;
+        if (cycles > stats.worstCycles) stats.worstCycles = cycles;
+        if (cycles > period) stats.overruns++;
+        if (late > stats.worstLateCycles) stats.worstLateCycles = late;
     }
 
-    std::array<PeriodicModule*, N> modules;
-    std::array<RateList, kRateCount> lists{};
-    std::array<RateStats, kRateCount> stats{};
-    std::array<RateStats, kRateCount> windowStats{};
-    std::array<uint32_t, kRateCount> periodCycles{};
-    std::array<uint32_t, kRateCount> lastStart{};
+    std::array<const PeriodicModule*, N> modules;
+    std::array<RateState, RATE_COUNT> rates{};
 };
 
 template <typename... Modules>
-Scheduler(Modules&...) -> Scheduler<sizeof...(Modules)>;
+Scheduler(const Modules&...) -> Scheduler<sizeof...(Modules)>;
 
 }  // namespace embr

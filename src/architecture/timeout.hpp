@@ -7,7 +7,7 @@
 
 #include "clock.hpp"
 
-namespace embr::arch::time {
+namespace embr {
 
 template <uint32_t (*T)()>
 class Timeout {
@@ -75,7 +75,7 @@ public:
     }
 };
 
-using MicroTimeout = Timeout<embr::arch::time::getTimeMicroseconds>;
-using MilliTimeout = Timeout<embr::arch::time::getTimeMilliseconds>;
+using MicroTimeout = Timeout<getTimeMicroseconds>;
+using MilliTimeout = Timeout<getTimeMilliseconds>;
 
-}  // namespace embr::arch::time
+}  // namespace embr

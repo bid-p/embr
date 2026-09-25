@@ -67,29 +67,32 @@ Exec.AddCommandOnOpen("SetSkipDebugDeInit = 1", 0);
 | ------------------- | ------------------------------------------------------------------ |
 | `embr:core`         | Umbrella module that pulls in everything below                     |
 | `embr:build-tools`  | Project `Sconstruct` and argument parsing                          |
-| `embr:scheduling`   | `Rate`, `PeriodicModule`, `Module<Derived>`, `Scheduler` (see below) |
+| `embr:scheduling`   | `Rate`, `PeriodicModule`, `Scheduler` (see below)                  |
 | `embr:time`         | Clock and cycle counter accessors, `Timeout`, `PeriodicTimer`       |
 
 ## Scheduling
 
 Application code is split into modules that run at a fixed set of rates: 1 Hz, 10 Hz, 100 Hz,
-1 kHz and 5 kHz (`embr::Rate`). A module is one class that derives from `embr::Module<Derived>` and
-overrides only the update functions it needs:
+1 kHz and 5 kHz (`embr::Rate`). A module hands the scheduler an `embr::PeriodicModule`: a struct of
+function pointers, one per rate plus `initialize`. It sets only the ones it needs, in declaration
+order; the others stay null and are never called.
 
 ```cpp
 #include "emlib/scheduling/periodic_module.hpp"
 
-class AuxModule final : public embr::Module<AuxModule> {
-public:
-    void initialize() override;  // optional, called once before any update
-    void update1kHz() override;
-    void update10Hz() override;
-};
-```
+static void initialize();  // optional, called once before any update
+static void update10Hz();
+static void update1kHz();
 
-`Module<Derived>` works out at compile time which update functions `Derived` overrides and reports
-them from `rates()`. Overrides must be public, and should be marked `override`, so that a misspelled
-name (`update1khz`) is a compile error rather than a function that never runs.
+const embr::PeriodicModule& module() {
+    static constexpr embr::PeriodicModule AUX_MANAGER_MODULE = {
+        .initialize = initialize,
+        .update10Hz = update10Hz,
+        .update1kHz = update1kHz,
+    };
+    return AUX_MANAGER_MODULE;
+}
+```
 
 `embr::Scheduler` takes the modules once, in the order they should run within a rate:
 
@@ -98,30 +101,28 @@ name (`update1khz`) is a compile error rather than a function that never runs.
 
 embr::Scheduler scheduler{aux::module(), sbus::module()};
 
-scheduler.initialize();                 // each module's initialize(), then one list per rate
-scheduler.run<embr::Rate::k1kHz>();     // one pass: update1kHz() on each module that overrides it
+scheduler.initialize();             // each module's initialize(), then one list of functions per rate
+scheduler.run(embr::Rate::k1kHz);   // one pass: every module's update1kHz, in registration order
 ```
 
-- `run<Rate>()` makes exactly one virtual call per module per pass, and never calls a module at a
-  rate it does not override.
+- `run(rate)` calls exactly the update functions listed for the rate, one direct call each.
 - Order is defined within a rate (registration order), not across rates.
-- `getStats(rate)` has each rate's pass count, the CPU cycles of the latest and the longest pass,
-  an overrun count (passes longer than the rate's period), and the longest interval between the
-  starts of two passes, which shows passes that started late. The scheduler is a plain object, so
-  these can be read over the debugger. `takeWindowStats(rate)` returns the same numbers for the time
-  since its previous call and starts a new window, for a logger that records them periodically.
+- Each rate's timing is kept since boot in the scheduler's `rates[].stats`, for the debugger: pass
+  count, the CPU cycles of the latest and the longest pass, an overrun count (passes longer than the
+  rate's period), and how late the latest-starting pass started. `takeWindowStats(rate)` returns
+  the same numbers for the time since its previous call and starts a new window, for a logger that
+  records them periodically.
 - What drives each rate is up to the application: a fiber with a `modm::ShortPeriodicTimer`, a timer
-  interrupt, etc. A rate run from an interrupt must never block in `update()`, and state it shares
-  with other rates needs atomics.
+  interrupt, etc. A rate run from an interrupt must never block in its update functions, and state
+  it shares with other rates needs atomics.
 
 ### Module pattern
 
-- **Managers that exist once per board** (power, logging, radio input...): a namespace with free
-  functions as the public API. The module class and all state are hidden in the `.cpp` (anonymous
-  namespace), and `embr::PeriodicModule& module()` hands the module to the scheduler. The accessor
-  function avoids static initialisation order problems between files.
-- **Reusable components** (drivers, filters, the `Scheduler` itself): classes in headers, templated
-  where needed.
+- **Modules** (power, logging, radio input, drivers that exist once per board...): a namespace with
+  free functions as the public API. Everything else in the `.cpp` is `static`: state, update
+  functions and helpers. A periodic module's `module()` returns its `embr::PeriodicModule`.
+- **Reusable components** (filters, the `Scheduler` itself): classes in headers, templated where
+  needed.
 - **No cross-module setters:** each module computes and stores its own data, and other modules read
   it through getters. This is a convention; nothing checks it.
 

@@ -5,10 +5,18 @@
 
 #pragma once
 
+/*******************************************************************************
+ *                               I N C L U D E S
+ ******************************************************************************/
+
 #include "modm/architecture/interface/clock.hpp"
 #include "modm/platform/device.hpp"
 
-namespace embr::arch::time {
+namespace embr {
+
+/*******************************************************************************
+ *            P U B L I C   F U N C T I O N   D E F I N I T I O N S
+ ******************************************************************************/
 
 /**
  * CPU cycles from the DWT cycle counter, which modm enables at startup (modm::delay_us spins on it).
@@ -30,4 +38,4 @@ inline uint32_t getTimeMilliseconds() { return modm::Clock().now().time_since_ep
  */
 inline uint32_t getTimeMicroseconds() { return modm::PreciseClock::now().time_since_epoch().count(); }
 
-}  // namespace embr::arch::time
+}  // namespace embr
