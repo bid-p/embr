@@ -135,7 +135,10 @@ env.AppendUnique(CCFLAGS=["-Wno-misleading-indentation"])
 if "additional-ccflags" in ARGUMENTS:
     env.AppendUnique(CCFLAGS=[*ARGUMENTS["additional-ccflags"].split(",")])
 
-env.AppendUnique(CPPPATH=[SRC_PATH])
+# Absolute, because SCons resolves a relative CPPPATH against the directory of the SConscript that builds each
+# file: modm and embr sources would get modm/src and embr/src instead. Library configuration headers that
+# live in the application (e.g. FatFs' <ffconf_local.h>) rely on it.
+env.AppendUnique(CPPPATH=[abspath(SRC_PATH)])
 
 sources = env.FindSourceFiles(SRC_PATH)
 
@@ -152,7 +155,8 @@ if args["TARGET_ENV"] == "hardware":
     # WARNING: all aliases must be checked during argument validation
     # compile_commands.json for clangd, regenerated on every build so it follows new sources
     def write_compile_db(target, source, env):
-        count = compile_db.generate(args["BUILD_PROFILE"], [SRC_PATH])
+        # Every source gets the include path added to CPPPATH above
+        count = compile_db.generate(args["BUILD_PROFILE"], [SRC_PATH], include_dirs=[SRC_PATH])
         print(f"Compile DB······ compile_commands.json ({count} sources)")
 
     compile_db_action = env.Action(write_compile_db, cmdstr=None)

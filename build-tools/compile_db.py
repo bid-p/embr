@@ -12,6 +12,8 @@ arm-none-eabi-gcc compiles it:
 - GCC's integer type definitions. For arm-none-eabi GCC makes int32_t a long, clang an int, which
   breaks overloads such as modm::IOStream::operator<<(int32_t) next to operator<<(int).
 - GCC-only flags that clang rejects are dropped.
+- The application's include directories (the Sconstruct's CPPPATH, which the generator does not see) are
+  added to every source, as in the build.
 """
 
 import json
@@ -79,7 +81,7 @@ def _gcc_type_macros(compiler, language, target_flags):
     return TYPE_MACRO.findall(output)
 
 
-def _convert(entry):
+def _convert(entry, include_dirs):
     tool, *args = entry["command"].split()
 
     # The generator writes "{TOOL} -o {OBJECT} -c {FLAGS} ...". Drop the object path: it isn't needed for
@@ -91,6 +93,8 @@ def _convert(entry):
     language = "c++" if tool.endswith("++") else "c"
     target_flags = [a for a in args if a.startswith(TARGET_FLAG_PREFIXES)]
 
+    include_flags = [f"-I{os.path.normpath(d)}" for d in include_dirs]
+
     gcc_flags = []
     for name, value in _gcc_type_macros(compiler, language, target_flags):
         gcc_flags += [f"-U{name}", f"-D{name}={value}"]
@@ -100,11 +104,13 @@ def _convert(entry):
     return {
         "directory": entry["directory"],
         "file": entry["file"],
-        "arguments": [compiler, "--target=arm-none-eabi", *args, *gcc_flags],
+        "arguments": [compiler, "--target=arm-none-eabi", *args, *include_flags, *gcc_flags],
     }
 
 
-def generate(profile, source_dirs):
+def generate(profile, source_dirs, include_dirs=()):
+    """Writes compile_commands.json for modm, embr and the sources in source_dirs. Every source is compiled
+    with include_dirs on its include path, as the Sconstruct does."""
     # The generator only knows modm's debug and release profiles
     profile = "debug" if profile == "debug" else "release"
     # Silence the SyntaxWarnings from Windows paths in the generated script
@@ -115,11 +121,11 @@ def generate(profile, source_dirs):
         # Only compiled sources: the generator also emits a link step for the .elf
         entries = [e for e in json.load(f) if " -c " in e["command"]]
     with open(OUTPUT, "w") as f:
-        json.dump([_convert(e) for e in entries], f, indent=2)
+        json.dump([_convert(e, include_dirs) for e in entries], f, indent=2)
     return len(entries)
 
 
 if __name__ == "__main__":
     profile = "debug" if "--debug" in sys.argv else "release"
     sources = [a for a in sys.argv[1:] if not a.startswith("--")] or ["src"]
-    print(f"Wrote {OUTPUT} with {generate(profile, sources)} entries")
+    print(f"Wrote {OUTPUT} with {generate(profile, sources, sources)} entries")
