@@ -124,11 +124,10 @@ private:
     };
 
     void add(Rate rate, Update update) {
-        if (update == nullptr) {
-            return;
+        if (update != nullptr) {
+            RateState& state = rates[index(rate)];
+            state.updates[state.count++] = update;
         }
-        RateState& state = rates[index(rate)];
-        state.updates[state.count++] = update;
     }
 
     static void record(RateStats& stats, uint32_t cycles, uint32_t late, uint32_t period) {
