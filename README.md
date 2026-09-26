@@ -84,7 +84,7 @@ static void initialize();  // optional, called once before any update
 static void update10Hz();
 static void update1kHz();
 
-const embr::PeriodicModule& module() {
+const embr::PeriodicModule& getModule() {
     static constexpr embr::PeriodicModule periodicModule = {
         .initialize = initialize,
         .update10Hz = update10Hz,
@@ -99,7 +99,7 @@ const embr::PeriodicModule& module() {
 ```cpp
 #include "emlib/scheduling/scheduler.hpp"
 
-embr::Scheduler scheduler{aux::module(), sbus::module()};
+embr::Scheduler scheduler{aux::getModule(), sbus::getModule()};
 
 scheduler.initialize();             // each module's initialize(), then one list of functions per rate
 scheduler.run(embr::Rate::k1kHz);   // one pass: every module's update1kHz, in registration order
@@ -120,7 +120,7 @@ scheduler.run(embr::Rate::k1kHz);   // one pass: every module's update1kHz, in r
 
 - **Modules** (power, logging, radio input, drivers that exist once per board...): a namespace with
   free functions as the public API. Everything else in the `.cpp` is `static`: state, update
-  functions and helpers. A periodic module's `module()` returns its `embr::PeriodicModule`.
+  functions and helpers. A periodic module's `getModule()` returns its `embr::PeriodicModule`.
 - **Reusable components** (filters, the `Scheduler` itself): classes in headers, templated where
   needed.
 - **No cross-module setters:** each module computes and stores its own data, and other modules read

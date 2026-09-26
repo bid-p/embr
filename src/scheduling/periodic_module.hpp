@@ -38,7 +38,7 @@ enum class Rate : uint8_t
  * stay null and are never called:
  *
  * ```cpp
- * const embr::PeriodicModule& module() {
+ * const embr::PeriodicModule& getModule() {
  *     static constexpr embr::PeriodicModule periodicModule = {
  *         .initialize = initialize,
  *         .update10Hz = update10Hz,

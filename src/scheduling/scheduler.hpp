@@ -40,7 +40,7 @@ struct RateStats
  * Runs a fixed set of modules at their rates.
  *
  * ```cpp
- * embr::Scheduler scheduler{aux::module(), sbus::module()};
+ * embr::Scheduler scheduler{aux::getModule(), sbus::getModule()};
  *
  * scheduler.initialize();
  * // then, from whatever drives the 1 kHz rate (a fiber, a timer interrupt...):
@@ -118,7 +118,7 @@ public:
     }
 
     /// Number of modules that run at the rate
-    size_t moduleCount(Rate rate) const
+    size_t getModuleCount(Rate rate) const
     {
         return rates[index(rate)].count;
     }
