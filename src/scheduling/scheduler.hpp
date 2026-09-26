@@ -13,14 +13,16 @@
 
 #include "periodic_module.hpp"
 
-namespace embr {
+namespace embr
+{
 
 /*******************************************************************************
  *                                  T Y P E S
  ******************************************************************************/
 
 /// Timing of one rate's passes
-struct RateStats {
+struct RateStats
+{
     /// Completed passes
     uint32_t passes = 0;
     /// CPU cycles the latest pass took
@@ -51,11 +53,13 @@ struct RateStats {
  * never block, and state they share with other rates needs atomics.
  */
 template <size_t N>
-class Scheduler {
+class Scheduler
+{
 public:
     template <std::same_as<PeriodicModule>... Modules>
         requires(sizeof...(Modules) == N)
-    explicit Scheduler(const Modules&... registered) : modules{&registered...} {}
+    explicit Scheduler(const Modules&... registered) : modules{&registered...}
+    {}
 
     Scheduler(const Scheduler&) = delete;
     Scheduler& operator=(const Scheduler&) = delete;
@@ -64,9 +68,12 @@ public:
      * Calls each module's initialize() and lists each rate's update functions. Call it once, after the system clock
      * is configured and before the first run().
      */
-    void initialize() {
-        for (const PeriodicModule* module : modules) {
-            if (module->initialize != nullptr) {
+    void initialize()
+    {
+        for (const PeriodicModule* module : modules)
+        {
+            if (module->initialize != nullptr)
+            {
                 module->initialize();
             }
             add(Rate::k1Hz, module->update1Hz);
@@ -78,10 +85,12 @@ public:
     }
 
     /// Runs one pass of the rate, calling its update functions in registration order, and records its timing
-    void run(Rate rate) {
+    void run(Rate rate)
+    {
         RateState& state = rates[index(rate)];
         const uint32_t start = getCycles();
-        for (size_t i = 0; i < state.count; i++) {
+        for (size_t i = 0; i < state.count; i++)
+        {
             state.updates[i]();
         }
         const uint32_t cycles = getCycles() - start;
@@ -101,21 +110,24 @@ public:
      *
      * @warning Not safe against a rate run from an interrupt, which would need the copy and reset to be atomic.
      */
-    RateStats takeWindowStats(Rate rate) {
+    RateStats takeWindowStats(Rate rate)
+    {
         const RateStats window = rates[index(rate)].windowStats;
         rates[index(rate)].windowStats = {};
         return window;
     }
 
     /// Number of modules that run at the rate
-    size_t moduleCount(Rate rate) const {
+    size_t moduleCount(Rate rate) const
+    {
         return rates[index(rate)].count;
     }
 
 private:
     using Update = void (*)();
 
-    struct RateState {
+    struct RateState
+    {
         std::array<Update, N> updates{};
         size_t count = 0;
         uint32_t lastStart = 0;
@@ -123,23 +135,29 @@ private:
         RateStats windowStats{};
     };
 
-    void add(Rate rate, Update update) {
-        if (update != nullptr) {
+    void add(Rate rate, Update update)
+    {
+        if (update != nullptr)
+        {
             RateState& state = rates[index(rate)];
             state.updates[state.count++] = update;
         }
     }
 
-    static void record(RateStats& stats, uint32_t cycles, uint32_t late, uint32_t period) {
+    static void record(RateStats& stats, uint32_t cycles, uint32_t late, uint32_t period)
+    {
         stats.passes++;
         stats.lastCycles = cycles;
-        if (cycles > stats.worstCycles) {
+        if (cycles > stats.worstCycles)
+        {
             stats.worstCycles = cycles;
         }
-        if (cycles > period) {
+        if (cycles > period)
+        {
             stats.overruns++;
         }
-        if (late > stats.worstLateCycles) {
+        if (late > stats.worstLateCycles)
+        {
             stats.worstLateCycles = late;
         }
     }

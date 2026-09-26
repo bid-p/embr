@@ -12,7 +12,8 @@
 #include "modm/architecture/interface/clock.hpp"
 #include "modm/platform/device.hpp"
 
-namespace embr {
+namespace embr
+{
 
 /*******************************************************************************
  *            P U B L I C   F U N C T I O N   D E F I N I T I O N S
@@ -23,24 +24,28 @@ namespace embr {
  *
  * @warning Wraps every 2^32 cycles (25 seconds at 170 MHz): compare timestamps by unsigned subtraction.
  */
-inline uint32_t getCycles() {
+inline uint32_t getCycles()
+{
     return DWT->CYCCNT;
 }
 
 /// Converts a number of CPU cycles to microseconds at the current core clock, rounded to the nearest
-inline uint32_t cyclesToMicroseconds(uint32_t cycles) {
+inline uint32_t cyclesToMicroseconds(uint32_t cycles)
+{
     const uint32_t cyclesPerMicrosecond = SystemCoreClock / 1'000'000;
     return cycles / cyclesPerMicrosecond + (cycles % cyclesPerMicrosecond >= cyclesPerMicrosecond / 2 ? 1 : 0);
 }
 
-inline uint32_t getTimeMilliseconds() {
+inline uint32_t getTimeMilliseconds()
+{
     return modm::Clock().now().time_since_epoch().count();
 }
 
 /**
  * @warning This clock time will wrap every 72 minutes.
  */
-inline uint32_t getTimeMicroseconds() {
+inline uint32_t getTimeMicroseconds()
+{
     return modm::PreciseClock::now().time_since_epoch().count();
 }
 

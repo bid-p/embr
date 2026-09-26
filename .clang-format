@@ -36,8 +36,26 @@ InsertBraces: true
 # Keep include groups as written
 IncludeBlocks: Preserve
 
-# Always break before braces.
-# BreakBeforeBraces: Allman
+# Opening braces on their own line (Allman), except for lambdas; empty bodies stay {}
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterExternBlock: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
 
 # If false, the function's arguments will be on different lines if they don't
 # fit on one line.

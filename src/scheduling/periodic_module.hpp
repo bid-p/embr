@@ -7,7 +7,8 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace embr {
+namespace embr
+{
 
 /*******************************************************************************
  *                                D E F I N E S
@@ -23,7 +24,14 @@ inline constexpr uint32_t RATE_FREQUENCY_HZ[RATE_COUNT] = {1, 10, 100, 1'000, 5'
  ******************************************************************************/
 
 /// The fixed set of rates a module's update functions run at
-enum class Rate : uint8_t { k1Hz, k10Hz, k100Hz, k1kHz, k5kHz };
+enum class Rate : uint8_t
+{
+    k1Hz,
+    k10Hz,
+    k100Hz,
+    k1kHz,
+    k5kHz
+};
 
 /**
  * A module's functions, which the Scheduler calls. A module sets only the ones it needs, in this order; the others
@@ -40,7 +48,8 @@ enum class Rate : uint8_t { k1Hz, k10Hz, k100Hz, k1kHz, k5kHz };
  * }
  * ```
  */
-struct PeriodicModule {
+struct PeriodicModule
+{
     /// Called once by Scheduler::initialize(), before any update function
     void (*initialize)() = nullptr;
 
@@ -55,11 +64,13 @@ struct PeriodicModule {
  *            P U B L I C   F U N C T I O N   D E F I N I T I O N S
  ******************************************************************************/
 
-inline constexpr size_t index(Rate rate) {
+inline constexpr size_t index(Rate rate)
+{
     return static_cast<size_t>(rate);
 }
 
-inline constexpr uint32_t frequencyHz(Rate rate) {
+inline constexpr uint32_t frequencyHz(Rate rate)
+{
     return RATE_FREQUENCY_HZ[index(rate)];
 }
 
