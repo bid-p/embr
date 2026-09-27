@@ -6,6 +6,7 @@ def init(module):
 def prepare(module, options):
     module.depends(
         ":build-tools",
+        ":filter",
         ":scheduling",
         ":time",
     )

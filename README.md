@@ -67,6 +67,7 @@ Exec.AddCommandOnOpen("SetSkipDebugDeInit = 1", 0);
 | ------------------- | ------------------------------------------------------------------ |
 | `embr:core`         | Umbrella module that pulls in everything below                     |
 | `embr:build-tools`  | Project `Sconstruct` and argument parsing                          |
+| `embr:filter`       | Filters for sampled inputs: `debounce()`                           |
 | `embr:scheduling`   | `Rate`, `PeriodicModule`, `Scheduler` (see below)                  |
 | `embr:time`         | Clock and cycle counter accessors, `Timeout`, `PeriodicTimer`       |
 

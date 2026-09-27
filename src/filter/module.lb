@@ -1,0 +1,14 @@
+def init(module):
+    module.name = ":filter"
+    module.description = "Filters for sampled inputs: debounce"
+
+
+def prepare(module, options):
+    return True
+
+
+def build(env):
+    env.outbasepath = "embr/src/emlib/filter"
+    env.copy("filter.hpp")
+
+    env.collect("modm:build:path.include", "embr/src")
