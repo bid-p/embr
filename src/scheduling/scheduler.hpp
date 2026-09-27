@@ -44,7 +44,7 @@ struct RateStats
  *
  * scheduler.initialize();
  * // then, from whatever drives the 1 kHz rate (a fiber, a timer interrupt...):
- * scheduler.run(embr::Rate::k1kHz);
+ * scheduler.run(embr::Freq1kHz);
  * ```
  *
  * Within a rate, modules run in registration order. There is no order across rates.
@@ -76,11 +76,11 @@ public:
             {
                 module->initialize();
             }
-            add(Rate::k1Hz, module->update1Hz);
-            add(Rate::k10Hz, module->update10Hz);
-            add(Rate::k100Hz, module->update100Hz);
-            add(Rate::k1kHz, module->update1kHz);
-            add(Rate::k5kHz, module->update5kHz);
+            add(Freq1Hz, module->update1Hz);
+            add(Freq10Hz, module->update10Hz);
+            add(Freq100Hz, module->update100Hz);
+            add(Freq1kHz, module->update1kHz);
+            add(Freq5kHz, module->update5kHz);
         }
     }
 

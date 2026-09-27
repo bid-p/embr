@@ -104,7 +104,7 @@ const embr::PeriodicModule& getModule() {
 embr::Scheduler scheduler{aux::getModule(), sbus::getModule()};
 
 scheduler.initialize();             // each module's initialize(), then one list of functions per rate
-scheduler.run(embr::Rate::k1kHz);   // one pass: every module's update1kHz, in registration order
+scheduler.run(embr::Freq1kHz);   // one pass: every module's update1kHz, in registration order
 ```
 
 - `run(rate)` calls exactly the update functions listed for the rate, one direct call each.

@@ -4,6 +4,7 @@
  *                               I N C L U D E S
  ******************************************************************************/
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 
@@ -23,15 +24,18 @@ inline constexpr uint32_t RATE_FREQUENCY_HZ[RATE_COUNT] = {1, 10, 100, 1'000, 5'
  *                                  T Y P E S
  ******************************************************************************/
 
-/// The fixed set of rates a module's update functions run at
+/// The fixed set of rates a module's update functions run at. The values are also available directly in
+/// embr, e.g. embr::Freq10Hz.
 enum class Rate : uint8_t
 {
-    k1Hz,
-    k10Hz,
-    k100Hz,
-    k1kHz,
-    k5kHz
+    Freq1Hz,
+    Freq10Hz,
+    Freq100Hz,
+    Freq1kHz,
+    Freq5kHz
 };
+
+using enum Rate;
 
 /**
  * A module's functions, which the Scheduler calls. A module sets only the ones it needs, in this order; the others
@@ -72,6 +76,19 @@ inline constexpr size_t index(Rate rate)
 inline constexpr uint32_t frequencyHz(Rate rate)
 {
     return RATE_FREQUENCY_HZ[index(rate)];
+}
+
+/**
+ * The number of passes of rate in time, rounded down, e.g. for a count of update calls:
+ *
+ * ```cpp
+ * using namespace std::chrono_literals;
+ * static constexpr uint32_t SHUTDOWN_DELAY_TICKS = embr::durationToTicks(embr::Freq10Hz, 5s);  // 50
+ * ```
+ */
+inline constexpr uint32_t durationToTicks(Rate rate, std::chrono::milliseconds time)
+{
+    return time.count() * frequencyHz(rate) / 1000;
 }
 
 }  // namespace embr
